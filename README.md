@@ -1,148 +1,32 @@
-# HEAP-MANAGEMENT
-This program simulates heap memory management using a static array. It defines a Block structure to track memory allocation. Functions include init_heap() to initialize memory, allocate() to allocate memory, deallocate() to free memory, and display_memory() to show memory status. The main menu lets users allocate, free, and view memory blocks.
-#include <stdio.h>
+This project implements a custom heap memory manager using a fixed-size memory pool and a linked list to simulate dynamic memory allocation in C. It provides a deeper understanding of how memory allocators like malloc and free work internally.
+Features
+Static heap simulation using a 1024-byte memory pool.
 
-#define HEAP_SIZE 1024  // Total heap size
-static char memory_pool[HEAP_SIZE]; // Simulated heap memory
+Dynamic memory allocation (allocate):
 
-// Metadata structure for memory blocks
-typedef struct Block {
-    unsigned int size;
-    int free;
-    struct Block *next;
-} Block;
+Aligns allocations to 4-byte boundaries.
 
-#define BLOCK_SIZE (unsigned int)sizeof(Block)
-static Block *freeList = (Block *)memory_pool;
+Splits larger free blocks to reduce internal fragmentation.
 
-// Initialize the memory pool
-void init_heap() {
-    freeList->size = HEAP_SIZE - BLOCK_SIZE;
-    freeList->free = 1;
-    freeList->next = NULL;
-}
+Memory deallocation (deallocate):
 
-// Allocate memory
-void *allocate(unsigned int size) {
-    if (size == 0) {
-        printf("Error: Cannot allocate zero bytes.\n");
-        return NULL;
-    }
+Marks blocks as free.
 
-    // Align size to multiples of 4 for efficiency
-    size = (size + 3) & ~3;
+Coalesces adjacent free blocks to minimize fragmentation.
 
-    Block *current = freeList;
+Memory block structure:
 
-    while (current) {
-        if (current->free && current->size >= size) {
-            // Split block if it's larger than needed
-            if (current->size > size + BLOCK_SIZE) {
-                Block *newBlock = (Block *)((char *)current + BLOCK_SIZE + size);
-                newBlock->size = current->size - size - BLOCK_SIZE;
-                newBlock->free = 1;
-                newBlock->next = current->next;
+Each block contains metadata: size, free flag, and next pointer.
 
-                current->size = size;
-                current->next = newBlock;
-            }
+Managed as a singly linked list.
 
-            current->free = 0; // Mark block as allocated
-            printf("Memory allocated at address: %p\n", (void *)(current + 1));
-            return (void *)(current + 1);
-        }
+Interactive user interface:
 
-        current = current->next;
-    }
+Allocate memory.
 
-    printf("Error: Not enough memory available.\n");
-    return NULL;
-}
+Free memory.
 
-// Free allocated memory and merge adjacent free blocks
-void deallocate(void *ptr) {
-    if (!ptr) {
-        printf("Error: Null pointer passed to free.\n");
-        return;
-    }
+Display the current memory state.
 
-    Block *block = (Block *)ptr - 1;
-    block->free = 1;
 
-    // Coalesce adjacent free blocks
-    Block *current = freeList;
-    while (current && current->next) {
-        if (current->free && current->next->free) {
-            current->size += current->next->size + BLOCK_SIZE;
-            current->next = current->next->next;
-        } else {
-            current = current->next;
-        }
-    }
 
-    printf("Memory freed at address: %p\n", ptr);
-}
-
-// Display memory blocks
-void display_memory() {
-    Block *current = freeList;
-    printf("\nHeap Memory Blocks:\n");
-    while (current) {
-        printf("[Address: %p, Size: %u, Free: %d] -> ", current, current->size, current->free);
-        current = current->next;
-    }
-    printf("NULL\n");
-}
-
-// Main driver with switch-case interaction
-int main() {
-    init_heap(); // Initialize the memory pool
-
-    int choice;
-    void *ptr1 = NULL;
-    unsigned int size;
-
-    while (1) {
-        printf("\nHeap Management Menu:\n");
-        printf("1. Allocate Memory\n");
-        printf("2. Free Memory\n");
-        printf("3. Display Memory\n");
-        printf("4. Exit\n");
-        printf("Enter your choice: ");
-        scanf("%d", &choice);
-
-        switch (choice) {
-            case 1:
-                printf("Enter size to allocate (bytes): ");
-                scanf("%u", &size);
-                ptr1 = allocate(size);
-                if (ptr1) {
-                    printf("Memory allocated successfully.\n");
-                }
-                break;
-
-            case 2:
-                if (ptr1) {
-                    deallocate(ptr1);
-                    ptr1 = NULL;
-                } else {
-                    printf("No allocated memory to free.\n");
-                }
-                break;
-
-            case 3:
-                display_memory();
-                break;
-
-            case 4:
-                printf("Exiting...\n");
-                return 0;
-
-            default:
-                printf("Invalid choice. Please try again.\n");
-                break;
-        }
-    }
-
-    return 0;
-}
